@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam System - Admin Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .sidebar-active { background-color: rgba(59, 130, 246, 0.1); border-right: 3px solid #3b82f6; }
+        .modal { transition: opacity 0.3s ease; }
+        .modal.hidden { opacity: 0; pointer-events: none; }
+        .modal:not(.hidden) { opacity: 1; pointer-events: auto; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Login Page -->
+    <div id="loginPage" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600">
+        <div class="bg-white p-8 rounded-lg shadow-2xl w-full max-w-md">
+            <h1 class="text-3xl font-bold text-center text-gray-800 mb-2">Exam System</h1>
+            <p class="text-center text-gray-600 mb-8">Admin Panel</p>
+            <form id="loginForm">
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-semibold mb-2">Username</label>
+                    <input type="text" id="loginUsername" required 
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="mb-6">
+                    <label class="block text-gray-700 text-sm font-semibold mb-2">Password</label>
+                    <input type="password" id="loginPassword" required 
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <button type="submit" 
+                    class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-200">
+                    Login
+                </button>
+            </form>
+            <p id="loginError" class="text-red-500 text-sm mt-4 hidden"></p>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div id="dashboardPage" class="hidden">
+        <!-- Sidebar -->
+        <aside class="fixed left-0 top-0 h-full w-64 bg-white shadow-lg z-50">
+            <div class="p-6 border-b">
+                <h2 class="text-xl font-bold text-gray-800">📚 Exam Admin</h2>
+            </div>
+            <nav class="mt-4">
+                <a href="#" onclick="showSection('dashboard')" id="nav-dashboard" class="sidebar-active flex items-center px-6 py-3 text-gray-700 hover:bg-gray-50">
+                    <i class="fas fa-home w-6"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" onclick="showSection('subjects')" id="nav-subjects" class="flex items-center px-6 py-3 text-gray-700 hover:bg-gray-50">
+                    <i class="fas fa-book w-6"></i>
+                    <span>Subjects</span>
+                </a>
+                <a href="#" onclick="showSection('users')" id="nav-users" class="flex items-center px-6 py-3 text-gray-700 hover:bg-gray-50">
+                    <i class="fas fa-users w-6"></i>
+                    <span>Users</span>
+                </a>
+                <a href="#" onclick="showSection('blocked')" id="nav-blocked" class="flex items-center px-6 py-3 text-gray-700 hover:bg-gray-50">
+                    <i class="fas fa-ban w-6"></i>
+                    <span>Blocked Users</span>
+                </a>
+                <a href="#" onclick="showSection('reports')" id="nav-reports" class="flex items-center px-6 py-3 text-gray-700 hover:bg-gray-50">
+                    <i class="fas fa-chart-bar w-6"></i>
+                    <span>Reports</span>
+                </a>
+            </nav>
+            <div class="absolute bottom-0 left-0 right-0 p-6 border-t">
+                <button onclick="logout()" class="flex items-center text-red-600 hover:text-red-800">
+                    <i class="fas fa-sign-out-alt w-6"></i>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="ml-64 p-8">
+            <!-- Header -->
+            <header class="flex justify-between items-center mb-8">
+                <h1 id="pageTitle" class="text-3xl font-bold text-gray-800">Dashboard</h1>
+                <div class="flex items-center space-x-4">
+                    <span id="adminName" class="text-gray-600"></span>
+                    <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">
+                        <i class="fas fa-user"></i>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard Section -->
+            <section id="section-dashboard">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 text-sm">Total Students</p>
+                                <p id="totalStudents" class="text-3xl font-bold text-gray-800">0</p>
+                            </div>
+                            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-users text-blue-600 text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 text-sm">Blocked Users</p>
+                                <p id="blockedCount" class="text-3xl font-bold text-red-600">0</p>
+                            </div>
+                            <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-ban text-red-600 text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 text-sm">Total Subjects</p>
+                                <p id="totalSubjects" class="text-3xl font-bold text-gray-800">0</p>
+                            </div>
+                            <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-book text-green-600 text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 text-sm">Tests Completed</p>
+                                <p id="testsCompleted" class="text-3xl font-bold text-gray-800">0</p>
+                            </div>
+                            <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-check-circle text-purple-600 text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Recent Activity</h3>
+                    <div id="recentActivity" class="space-y-4">
+                        <p class="text-gray-500">Loading...</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Subjects Section -->
+            <section id="section-subjects" class="hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <button onclick="openSubjectModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                        <i class="fas fa-plus mr-2"></i>Add Subject
+                    </button>
+                </div>
+                <div id="subjectsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Subjects will be loaded here -->
+                </div>
+            </section>
+
+            <!-- Users Section -->
+            <section id="section-users" class="hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <button onclick="openUserModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                        <i class="fas fa-plus mr-2"></i>Add Student
+                    </button>
+                </div>
+                <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Class</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody" class="bg-white divide-y divide-gray-200">
+                            <!-- Users will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Blocked Users Section -->
+            <section id="section-blocked" class="hidden">
+                <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Blocked At</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="blockedTableBody" class="bg-white divide-y divide-gray-200">
+                            <!-- Blocked users will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Reports Section -->
+            <section id="section-reports" class="hidden">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Test Reports</h3>
+                    <div id="reportsList" class="space-y-4">
+                        <p class="text-gray-500">Select a user to view their test history</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Subject Modal -->
+    <div id="subjectModal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <h2 id="subjectModalTitle" class="text-2xl font-bold mb-4">Add Subject</h2>
+            <form id="subjectForm">
+                <input type="hidden" id="subjectId">
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-semibold mb-2">Subject Name *</label>
+                    <input type="text" id="subjectName" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-semibold mb-2">Description</label>
+                    <textarea id="subjectDescription" rows="3" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"></textarea>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-semibold mb-2">Total Time Limit (minutes) *</label>
+                    <input type="number" id="subjectTimeLimit" required min="1" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <h3 class="text-lg font-semibold mb-3">Questions</h3>
+                <div id="questionsContainer" class="space-y-4 mb-4"></div>
+                
+                <button type="button" onclick="addQuestionField()" class="text-blue-600 hover:text-blue-800 mb-4">
+                    <i class="fas fa-plus mr-2"></i>Add Question
+                </button>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeSubjectModal()" class="px-4 py-2 border rounded-lg hover:bg-gray-50">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Save Subject</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- User Modal -->
+    <div id="userModal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 id="userModalTitle" class="text-2xl font-bold mb-4">Add Student</h2>
+            <form id="userForm">
+                <input type="hidden" id="userId">
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-semibold mb-2">First Name *</label>
+                    <input type="text" id="userFirstName" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-semibold mb-2">Last Name *</label>
+                    <input type="text" id="userLastName" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-semibold mb-2">Class *</label>
+                    <input type="text" id="userClass" placeholder="e.g., 9A" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-semibold mb-2">Subject *</label>
+                    <input type="text" id="userSubject" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-semibold mb-2">Username *</label>
+                    <input type="text" id="userUsername" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-semibold mb-2">Password</label>
+                    <input type="text" id="userPassword" placeholder="Leave empty to auto-generate" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeUserModal()" class="px-4 py-2 border rounded-lg hover:bg-gray-50">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Save User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Report Modal -->
+    <div id="reportModal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <h2 class="text-2xl font-bold mb-4">Test Report</h2>
+            <div id="reportContent"></div>
+            <div class="flex justify-end mt-4">
+                <button onclick="closeReportModal()" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
