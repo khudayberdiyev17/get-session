@@ -23,7 +23,7 @@ async function seed() {
         firstName: 'System',
         lastName: 'Administrator',
         className: 'N/A',
-        subjectName: 'N/A',
+        subjects: [],
         username: 'admin',
         password: adminPassword,
         role: 'admin',
@@ -34,12 +34,10 @@ async function seed() {
     console.log('Admin user created/updated:', admin.username);
 
     // Create sample student users
+    // Demo talabalar: ism/familiya/sinf bo'sh (talaba o'zi kiritadi)
     const students = [
-      { firstName: 'Ali', lastName: 'Valiyev', className: '9A', subjectName: 'Mathematics', username: 'student1' },
-      { firstName: 'Zarina', lastName: 'Karimova', className: '9B', subjectName: 'Physics', username: 'student2' },
-      { firstName: 'Rustam', lastName: 'Tursunov', className: '10A', subjectName: 'Mathematics', username: 'student3' },
-      { firstName: 'Malika', lastName: 'Abdullayeva', className: '10B', subjectName: 'Chemistry', username: 'student4' },
-      { firstName: 'Jasur', lastName: 'Rahimov', className: '11A', subjectName: 'Physics', username: 'student5' }
+      { subjects: ['Matematika', 'Fizika'], username: 'nis@11111111' },
+      { subjects: ['Kimyo'],               username: 'nis@22222222' },
     ];
 
     for (const studentData of students) {
@@ -48,6 +46,9 @@ async function seed() {
         { username: studentData.username },
         {
           ...studentData,
+          firstName: '',
+          lastName: '',
+          className: '',
           password,
           role: 'student',
           status: 'active'
@@ -59,9 +60,9 @@ async function seed() {
 
     // Create sample subjects with questions
     const mathematicsSubject = await Subject.findOneAndUpdate(
-      { name: 'Mathematics' },
+      { name: 'Matematika' },
       {
-        name: 'Mathematics',
+        name: 'Matematika',
         description: 'Basic mathematics test covering algebra and geometry',
         totalTimeLimit: 10, // 10 minutes
         isActive: true,
@@ -100,12 +101,12 @@ async function seed() {
       },
       { upsert: true, new: true }
     );
-    console.log('Mathematics subject created');
+    console.log('Matematika subject created');
 
     const physicsSubject = await Subject.findOneAndUpdate(
-      { name: 'Physics' },
+      { name: 'Fizika' },
       {
-        name: 'Physics',
+        name: 'Fizika',
         description: 'Basic physics test covering mechanics and energy',
         totalTimeLimit: 15, // 15 minutes
         isActive: true,
@@ -144,12 +145,12 @@ async function seed() {
       },
       { upsert: true, new: true }
     );
-    console.log('Physics subject created');
+    console.log('Fizika subject created');
 
     const chemistrySubject = await Subject.findOneAndUpdate(
-      { name: 'Chemistry' },
+      { name: 'Kimyo' },
       {
-        name: 'Chemistry',
+        name: 'Kimyo',
         description: 'Basic chemistry test covering elements and reactions',
         totalTimeLimit: 12, // 12 minutes
         isActive: true,
@@ -188,12 +189,13 @@ async function seed() {
       },
       { upsert: true, new: true }
     );
-    console.log('Chemistry subject created');
+    console.log('Kimyo subject created');
 
     console.log('\n=== Seed completed successfully ===');
-    console.log('\nSample credentials:');
-    console.log('Admin: username=admin, password=admin123');
-    console.log('Students: username=student1-5, password=password123');
+    console.log('\nKirish ma\'lumotlari:');
+    console.log('Admin:   username=admin,        password=admin123');
+    console.log('Talaba1: username=nis@11111111, password=password123');
+    console.log('Talaba2: username=nis@22222222, password=password123');
     
     process.exit(0);
   } catch (error) {

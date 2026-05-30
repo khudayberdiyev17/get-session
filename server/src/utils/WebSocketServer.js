@@ -1,8 +1,8 @@
 const WebSocket = require('ws');
-const User = require('./models/User');
-const BlockLog = require('./models/BlockLog');
-const TestSession = require('./models/TestSession');
-const { activeSessions, submitTest, handleTestTimeout } = require('./routes/test');
+const User = require('../models/User');
+const BlockLog = require('../models/BlockLog');
+const TestSession = require('../models/TestSession');
+const { activeSessions, submitTest, handleTestTimeout } = require('../routes/test');
 
 const HEARTBEAT_INTERVAL = 10000; // 10 seconds
 const HEARTBEAT_TIMEOUT = 30000; // 30 seconds - if no heartbeat, block user
@@ -10,7 +10,8 @@ const HEARTBEAT_TIMEOUT = 30000; // 30 seconds - if no heartbeat, block user
 class WebSocketServer {
   constructor(server) {
     this.wss = new WebSocket.Server({ server });
-    this.clients = new Map(); // Map<userId, WebSocket>
+    this.clients = new Map();      // Map<userId, WebSocket>  — students
+    this.adminClients = new Set(); // Set<WebSocket>          — admins
     
     this.wss.on('connection', (ws, req) => {
       this.handleConnection(ws, req);
@@ -62,7 +63,9 @@ class WebSocketServer {
 
     ws.on('close', () => {
       console.log('WebSocket connection closed');
-      if (ws.userId) {
+      if (ws.isAdmin) {
+        this.adminClients.delete(ws);
+      } else if (ws.userId) {
         this.clients.delete(ws.userId);
       }
     });
@@ -73,19 +76,28 @@ class WebSocketServer {
   }
 
   async handleAuth(ws, message) {
-    const { userId, token } = message;
-    
-    // In a real implementation, verify the JWT token here
-    // For now, we'll just store the userId
+    const { userId, token, role } = message;
+
+    if (role === 'admin') {
+      ws.isAdmin = true;
+      this.adminClients.add(ws);
+      ws.send(JSON.stringify({ type: 'auth_success', message: 'Admin WebSocket connected' }));
+      console.log('Admin WebSocket connected');
+      return;
+    }
+
     ws.userId = userId;
     this.clients.set(userId, ws);
-    
-    ws.send(JSON.stringify({
-      type: 'auth_success',
-      message: 'WebSocket authenticated'
-    }));
-    
+    ws.send(JSON.stringify({ type: 'auth_success', message: 'WebSocket authenticated' }));
     console.log(`WebSocket authenticated for user: ${userId}`);
+  }
+
+  // Admin panelga real-vaqtda xabar yuborish
+  broadcastAdmins(message) {
+    const data = JSON.stringify(message);
+    this.adminClients.forEach(ws => {
+      if (ws.readyState === WebSocket.OPEN) ws.send(data);
+    });
   }
 
   async handleHeartbeat(ws, message) {
@@ -108,8 +120,11 @@ class WebSocketServer {
   async handleKeyPress(ws, message) {
     if (!ws.userId) return;
 
+    // Faqat aktiv test sessiyasi bo'lganda hisoblash
+    if (!activeSessions.has(ws.userId.toString())) return;
+
     const user = await User.findById(ws.userId);
-    if (!user) return;
+    if (!user || user.status === 'blocked') return;
 
     // Increment key press count
     user.keyPressCount = (user.keyPressCount || 0) + 1;

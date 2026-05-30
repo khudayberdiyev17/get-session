@@ -1,304 +1,654 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="uz">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Exam System - Admin Panel</title>
+    <title>Imtihon Tizimi – Admin Panel</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        .sidebar-active { background-color: rgba(59, 130, 246, 0.1); border-right: 3px solid #3b82f6; }
-        .modal { transition: opacity 0.3s ease; }
-        .modal.hidden { opacity: 0; pointer-events: none; }
-        .modal:not(.hidden) { opacity: 1; pointer-events: auto; }
+        /* Active nav link */
+        .nav-link.active {
+            background-color: #eff6ff;
+            color: #2563eb;
+            border-right: 3px solid #2563eb;
+            font-weight: 600;
+        }
+        .nav-link.active i { color: #2563eb; }
+
+        /* Smooth transitions */
+        .nav-link { transition: background 0.15s, color 0.15s; }
+        section[id^="section-"] { animation: fadeIn 0.2s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Toast */
+        #toastContainer { pointer-events: none; }
+        .toast { animation: slideIn 0.3s ease; }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(60px); } to { opacity: 1; transform: translateX(0); } }
+        .toast.hide { animation: slideOut 0.3s ease forwards; }
+        @keyframes slideOut { to { opacity: 0; transform: translateX(60px); } }
+
+        /* Skeleton */
+        .skeleton { background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+                    background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 6px; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9px; }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
-    <!-- Login Page -->
-    <div id="loginPage" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600">
-        <div class="bg-white p-8 rounded-lg shadow-2xl w-full max-w-md">
-            <h1 class="text-3xl font-bold text-center text-gray-800 mb-2">Exam System</h1>
-            <p class="text-center text-gray-600 mb-8">Admin Panel</p>
-            <form id="loginForm">
+<body class="bg-slate-100 min-h-screen font-sans text-slate-800">
+
+<!-- ── TOAST CONTAINER ──────────────────────────────────── -->
+<div id="toastContainer" class="fixed top-5 right-5 z-[9999] flex flex-col gap-2 max-w-sm"></div>
+
+<!-- ── CONFIRM DIALOG ───────────────────────────────────── -->
+<div id="confirmOverlay" class="hidden fixed inset-0 bg-black/40 z-[9998] flex items-center justify-center">
+    <div class="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4">
+        <div class="flex items-start gap-3 mb-4">
+            <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <i class="fas fa-exclamation-triangle text-red-600"></i>
+            </div>
+            <div>
+                <h3 class="font-bold text-slate-800 text-lg">Tasdiqlang</h3>
+                <p id="confirmMessage" class="text-slate-600 text-sm mt-1">Ishonchingiz komilmi?</p>
+            </div>
+        </div>
+        <div class="flex gap-3 justify-end">
+            <button id="confirmNo" class="px-4 py-2 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg font-medium text-sm transition">Bekor qilish</button>
+            <button id="confirmYes" class="px-4 py-2 text-white bg-red-600 hover:bg-red-700 rounded-lg font-medium text-sm transition">Ha, davom eting</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!--  LOGIN PAGE                                           -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div id="loginPage" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-600 to-indigo-700 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+        <!-- Top accent -->
+        <div class="h-1.5 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
+        <div class="p-8">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-graduation-cap text-blue-600 text-2xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-slate-800">Imtihon Tizimi</h1>
+                <p class="text-slate-500 mt-1">Admin Panel</p>
+            </div>
+
+            <form id="loginForm" novalidate>
                 <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-semibold mb-2">Username</label>
-                    <input type="text" id="loginUsername" required 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <label class="block text-slate-700 text-sm font-semibold mb-1.5">Foydalanuvchi nomi</label>
+                    <div class="relative">
+                        <i class="fas fa-user absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                        <input type="text" id="loginUsername" required autocomplete="username"
+                            placeholder="admin"
+                            class="w-full pl-9 pr-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                    </div>
                 </div>
                 <div class="mb-6">
-                    <label class="block text-gray-700 text-sm font-semibold mb-2">Password</label>
-                    <input type="password" id="loginPassword" required 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <label class="block text-slate-700 text-sm font-semibold mb-1.5">Parol</label>
+                    <div class="relative">
+                        <i class="fas fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                        <input type="password" id="loginPassword" required autocomplete="current-password"
+                            placeholder="••••••••"
+                            class="w-full pl-9 pr-10 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                        <button type="button" onclick="togglePasswordVisibility('loginPassword', this)"
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                            <i class="fas fa-eye text-sm"></i>
+                        </button>
+                    </div>
                 </div>
-                <button type="submit" 
-                    class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-200">
-                    Login
+                <p id="loginError" class="text-red-500 text-sm mb-4 hidden flex items-center gap-2">
+                    <i class="fas fa-circle-exclamation"></i>
+                    <span id="loginErrorText"></span>
+                </p>
+                <button type="submit" id="loginBtn"
+                    class="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white py-2.5 rounded-lg font-semibold text-sm transition duration-150 flex items-center justify-center gap-2">
+                    <span>Kirish</span>
+                    <i class="fas fa-arrow-right"></i>
                 </button>
             </form>
-            <p id="loginError" class="text-red-500 text-sm mt-4 hidden"></p>
         </div>
     </div>
+</div>
 
-    <!-- Main Dashboard -->
-    <div id="dashboardPage" class="hidden">
-        <!-- Sidebar -->
-        <aside class="fixed left-0 top-0 h-full w-64 bg-white shadow-lg z-50">
-            <div class="p-6 border-b">
-                <h2 class="text-xl font-bold text-gray-800">📚 Exam Admin</h2>
-            </div>
-            <nav class="mt-4">
-                <a href="#" onclick="showSection('dashboard')" id="nav-dashboard" class="sidebar-active flex items-center px-6 py-3 text-gray-700 hover:bg-gray-50">
-                    <i class="fas fa-home w-6"></i>
-                    <span>Dashboard</span>
-                </a>
-                <a href="#" onclick="showSection('subjects')" id="nav-subjects" class="flex items-center px-6 py-3 text-gray-700 hover:bg-gray-50">
-                    <i class="fas fa-book w-6"></i>
-                    <span>Subjects</span>
-                </a>
-                <a href="#" onclick="showSection('users')" id="nav-users" class="flex items-center px-6 py-3 text-gray-700 hover:bg-gray-50">
-                    <i class="fas fa-users w-6"></i>
-                    <span>Users</span>
-                </a>
-                <a href="#" onclick="showSection('blocked')" id="nav-blocked" class="flex items-center px-6 py-3 text-gray-700 hover:bg-gray-50">
-                    <i class="fas fa-ban w-6"></i>
-                    <span>Blocked Users</span>
-                </a>
-                <a href="#" onclick="showSection('reports')" id="nav-reports" class="flex items-center px-6 py-3 text-gray-700 hover:bg-gray-50">
-                    <i class="fas fa-chart-bar w-6"></i>
-                    <span>Reports</span>
-                </a>
-            </nav>
-            <div class="absolute bottom-0 left-0 right-0 p-6 border-t">
-                <button onclick="logout()" class="flex items-center text-red-600 hover:text-red-800">
-                    <i class="fas fa-sign-out-alt w-6"></i>
-                    <span>Logout</span>
-                </button>
-            </div>
-        </aside>
+<!-- ══════════════════════════════════════════════════════ -->
+<!--  DASHBOARD                                            -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div id="dashboardPage" class="hidden">
 
-        <!-- Main Content -->
-        <main class="ml-64 p-8">
-            <!-- Header -->
-            <header class="flex justify-between items-center mb-8">
-                <h1 id="pageTitle" class="text-3xl font-bold text-gray-800">Dashboard</h1>
-                <div class="flex items-center space-x-4">
-                    <span id="adminName" class="text-gray-600"></span>
-                    <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">
-                        <i class="fas fa-user"></i>
-                    </div>
-                </div>
-            </header>
-
-            <!-- Dashboard Section -->
-            <section id="section-dashboard">
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <div class="bg-white p-6 rounded-lg shadow">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-gray-500 text-sm">Total Students</p>
-                                <p id="totalStudents" class="text-3xl font-bold text-gray-800">0</p>
-                            </div>
-                            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                                <i class="fas fa-users text-blue-600 text-xl"></i>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-white p-6 rounded-lg shadow">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-gray-500 text-sm">Blocked Users</p>
-                                <p id="blockedCount" class="text-3xl font-bold text-red-600">0</p>
-                            </div>
-                            <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                                <i class="fas fa-ban text-red-600 text-xl"></i>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-white p-6 rounded-lg shadow">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-gray-500 text-sm">Total Subjects</p>
-                                <p id="totalSubjects" class="text-3xl font-bold text-gray-800">0</p>
-                            </div>
-                            <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                                <i class="fas fa-book text-green-600 text-xl"></i>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-white p-6 rounded-lg shadow">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-gray-500 text-sm">Tests Completed</p>
-                                <p id="testsCompleted" class="text-3xl font-bold text-gray-800">0</p>
-                            </div>
-                            <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                                <i class="fas fa-check-circle text-purple-600 text-xl"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-xl font-bold text-gray-800 mb-4">Recent Activity</h3>
-                    <div id="recentActivity" class="space-y-4">
-                        <p class="text-gray-500">Loading...</p>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Subjects Section -->
-            <section id="section-subjects" class="hidden">
-                <div class="flex justify-between items-center mb-6">
-                    <button onclick="openSubjectModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
-                        <i class="fas fa-plus mr-2"></i>Add Subject
-                    </button>
-                </div>
-                <div id="subjectsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <!-- Subjects will be loaded here -->
-                </div>
-            </section>
-
-            <!-- Users Section -->
-            <section id="section-users" class="hidden">
-                <div class="flex justify-between items-center mb-6">
-                    <button onclick="openUserModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
-                        <i class="fas fa-plus mr-2"></i>Add Student
-                    </button>
-                </div>
-                <div class="bg-white rounded-lg shadow overflow-hidden">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Class</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="usersTableBody" class="bg-white divide-y divide-gray-200">
-                            <!-- Users will be loaded here -->
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-
-            <!-- Blocked Users Section -->
-            <section id="section-blocked" class="hidden">
-                <div class="bg-white rounded-lg shadow overflow-hidden">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Blocked At</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="blockedTableBody" class="bg-white divide-y divide-gray-200">
-                            <!-- Blocked users will be loaded here -->
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-
-            <!-- Reports Section -->
-            <section id="section-reports" class="hidden">
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-xl font-bold text-gray-800 mb-4">Test Reports</h3>
-                    <div id="reportsList" class="space-y-4">
-                        <p class="text-gray-500">Select a user to view their test history</p>
-                    </div>
-                </div>
-            </section>
-        </main>
+    <!-- Mobile top bar -->
+    <div class="lg:hidden fixed top-0 left-0 right-0 h-14 bg-white border-b border-slate-200 flex items-center px-4 z-50">
+        <button onclick="toggleSidebar()" class="text-slate-600 mr-3"><i class="fas fa-bars text-lg"></i></button>
+        <span class="font-bold text-slate-800">Exam Admin</span>
     </div>
 
-    <!-- Subject Modal -->
-    <div id="subjectModal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <h2 id="subjectModalTitle" class="text-2xl font-bold mb-4">Add Subject</h2>
-            <form id="subjectForm">
+    <!-- Sidebar overlay (mobile) -->
+    <div id="sidebarOverlay" onclick="closeSidebar()"
+        class="hidden fixed inset-0 bg-black/40 z-40 lg:hidden"></div>
+
+    <!-- ── Sidebar ────────────────────────────────────── -->
+    <aside id="sidebar"
+        class="fixed left-0 top-0 h-full w-60 bg-white border-r border-slate-200 z-50
+               -translate-x-full lg:translate-x-0 transition-transform duration-200">
+        <!-- Logo -->
+        <div class="px-5 py-5 border-b border-slate-100 flex items-center gap-3">
+            <div class="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center">
+                <i class="fas fa-graduation-cap text-white text-base"></i>
+            </div>
+            <div>
+                <p class="font-bold text-slate-800 text-sm leading-none">Exam Admin</p>
+                <p class="text-xs text-slate-500 mt-0.5">Boshqaruv paneli</p>
+            </div>
+        </div>
+
+        <!-- Nav -->
+        <nav class="mt-3 px-3">
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider px-3 mb-1">Asosiy</p>
+            <a href="#" onclick="showSection('dashboard')" id="nav-dashboard"
+               class="nav-link active flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-600 hover:bg-slate-50 mb-0.5">
+                <i class="fas fa-chart-pie w-4 text-slate-400"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="#" onclick="showSection('subjects')" id="nav-subjects"
+               class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-600 hover:bg-slate-50 mb-0.5">
+                <i class="fas fa-book w-4 text-slate-400"></i>
+                <span>Fanlar</span>
+            </a>
+            <a href="#" onclick="showSection('users')" id="nav-users"
+               class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-600 hover:bg-slate-50 mb-0.5">
+                <i class="fas fa-users w-4 text-slate-400"></i>
+                <span>Foydalanuvchilar</span>
+            </a>
+            <a href="#" onclick="showSection('blocked')" id="nav-blocked"
+               class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-600 hover:bg-slate-50 mb-0.5">
+                <i class="fas fa-ban w-4 text-slate-400"></i>
+                <span>Bloklangan</span>
+                <span id="blockedBadge" class="hidden ml-auto bg-red-100 text-red-600 text-xs font-bold px-1.5 py-0.5 rounded-full"></span>
+            </a>
+            <a href="#" onclick="showSection('results')" id="nav-results"
+               class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-600 hover:bg-slate-50 mb-0.5">
+                <i class="fas fa-list-check w-4 text-slate-400"></i>
+                <span>Imtihon natijalari</span>
+                <span id="resultsBadge" class="hidden ml-auto bg-blue-100 text-blue-600 text-xs font-bold px-1.5 py-0.5 rounded-full"></span>
+            </a>
+            <a href="#" onclick="showSection('reports')" id="nav-reports"
+               class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-600 hover:bg-slate-50">
+                <i class="fas fa-chart-bar w-4 text-slate-400"></i>
+                <span>Hisobotlar</span>
+            </a>
+        </nav>
+
+        <!-- Bottom: user + logout -->
+        <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-100">
+            <div class="flex items-center gap-2 mb-3">
+                <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-user text-white text-xs"></i>
+                </div>
+                <div class="min-w-0">
+                    <p id="sidebarAdminName" class="text-xs font-semibold text-slate-700 truncate">Admin</p>
+                    <p class="text-xs text-slate-400">Administrator</p>
+                </div>
+            </div>
+            <button onclick="openProfileModal()"
+                class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition mb-1">
+                <i class="fas fa-key w-4"></i>
+                <span>Parolni o'zgartirish</span>
+            </button>
+            <button onclick="logout()"
+                class="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition">
+                <i class="fas fa-sign-out-alt w-4"></i>
+                <span>Chiqish</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- ── Main Content ───────────────────────────────── -->
+    <main class="lg:ml-60 pt-14 lg:pt-0 min-h-screen">
+        <!-- Page header -->
+        <div class="sticky top-0 lg:top-0 bg-white/80 backdrop-blur border-b border-slate-200 z-30">
+            <div class="px-6 py-4 flex items-center justify-between">
+                <h1 id="pageTitle" class="text-xl font-bold text-slate-800">Dashboard</h1>
+                <span id="adminName" class="hidden lg:block text-sm text-slate-500"></span>
+            </div>
+        </div>
+
+        <div class="p-6">
+
+        <!-- ── Dashboard Section ──────────────────────── -->
+        <section id="section-dashboard">
+            <!-- Stat cards -->
+            <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+                    <div class="flex items-center justify-between mb-3">
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Talabalar</p>
+                        <div class="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-users text-blue-600 text-sm"></i>
+                        </div>
+                    </div>
+                    <p id="totalStudents" class="text-3xl font-bold text-slate-800">—</p>
+                </div>
+                <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+                    <div class="flex items-center justify-between mb-3">
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Bloklangan</p>
+                        <div class="w-9 h-9 bg-red-50 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-ban text-red-500 text-sm"></i>
+                        </div>
+                    </div>
+                    <p id="blockedCount" class="text-3xl font-bold text-red-500">—</p>
+                </div>
+                <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+                    <div class="flex items-center justify-between mb-3">
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Fanlar</p>
+                        <div class="w-9 h-9 bg-emerald-50 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-book text-emerald-600 text-sm"></i>
+                        </div>
+                    </div>
+                    <p id="totalSubjects" class="text-3xl font-bold text-slate-800">—</p>
+                </div>
+                <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+                    <div class="flex items-center justify-between mb-3">
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Tugatilgan</p>
+                        <div class="w-9 h-9 bg-violet-50 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-circle-check text-violet-600 text-sm"></i>
+                        </div>
+                    </div>
+                    <p id="testsCompleted" class="text-3xl font-bold text-slate-800">—</p>
+                </div>
+            </div>
+
+            <!-- Recent blocked -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+                <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <i class="fas fa-clock-rotate-left text-slate-400 text-sm"></i>
+                    So'nggi faoliyat
+                </h3>
+                <div id="recentActivity" class="space-y-2">
+                    <div class="skeleton h-12 w-full"></div>
+                    <div class="skeleton h-12 w-full"></div>
+                    <div class="skeleton h-12 w-5/6"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── Subjects Section ───────────────────────── -->
+        <section id="section-subjects" class="hidden">
+            <div class="flex items-center justify-between mb-5">
+                <p class="text-sm text-slate-500" id="subjectsCount"></p>
+                <button onclick="openSubjectModal()"
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 transition">
+                    <i class="fas fa-plus"></i>Fan qo'shish
+                </button>
+            </div>
+            <div id="subjectsList" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                <div class="skeleton h-36 w-full rounded-2xl"></div>
+                <div class="skeleton h-36 w-full rounded-2xl"></div>
+                <div class="skeleton h-36 w-full rounded-2xl"></div>
+            </div>
+        </section>
+
+        <!-- ── Users Section ──────────────────────────── -->
+        <section id="section-users" class="hidden">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+                <div class="relative flex-1 max-w-xs">
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                    <input type="text" id="userSearch" placeholder="Qidirish..."
+                        oninput="filterUsers()"
+                        class="w-full pl-9 pr-4 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <button onclick="openUserModal()"
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 transition">
+                    <i class="fas fa-plus"></i>Talaba qo'shish
+                </button>
+            </div>
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full">
+                        <thead>
+                            <tr class="border-b border-slate-100 bg-slate-50">
+                                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Ism / Login</th>
+                                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide hidden md:table-cell">Fanlar</th>
+                                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Holat</th>
+                                <th class="px-5 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">Amallar</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody" class="divide-y divide-slate-100">
+                            <tr><td colspan="4" class="px-5 py-8 text-center text-slate-400 text-sm">Yuklanmoqda...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── Blocked Users Section ──────────────────── -->
+        <section id="section-blocked" class="hidden">
+            <div class="flex items-center gap-3 mb-5">
+                <div class="relative flex-1 max-w-xs">
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                    <input type="text" id="blockedSearch" placeholder="Qidirish..."
+                        oninput="filterBlocked()"
+                        class="w-full pl-9 pr-4 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full">
+                        <thead>
+                            <tr class="border-b border-slate-100 bg-slate-50">
+                                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">FISH / Login</th>
+                                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide hidden sm:table-cell">Sinf</th>
+                                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide hidden md:table-cell">Topshirilgan fanlar</th>
+                                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Sabab</th>
+                                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide hidden lg:table-cell">Sana</th>
+                                <th class="px-5 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">Amal</th>
+                            </tr>
+                        </thead>
+                        <tbody id="blockedTableBody" class="divide-y divide-slate-100">
+                            <tr><td colspan="6" class="px-5 py-8 text-center text-slate-400 text-sm">Yuklanmoqda...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── Results Section ───────────────────────── -->
+        <section id="section-results" class="hidden">
+            <!-- Filter bar -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 mb-4">
+                <div class="flex flex-wrap items-end gap-3">
+                    <div class="flex-1 min-w-[150px]">
+                        <label class="block text-xs font-semibold text-slate-500 mb-1.5">Sinf bo'yicha</label>
+                        <input type="text" id="resultsClassFilter" placeholder="Masalan: 7-A"
+                            class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div class="flex-1 min-w-[150px]">
+                        <label class="block text-xs font-semibold text-slate-500 mb-1.5">Holat</label>
+                        <select id="resultsStatusFilter"
+                            class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">Barchasi</option>
+                            <option value="passed">O'tganlar ✓</option>
+                            <option value="failed">O'tmaganlar ✗</option>
+                        </select>
+                    </div>
+                    <div class="flex gap-2 flex-shrink-0">
+                        <button onclick="applyResultsFilter()"
+                            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition flex items-center gap-2">
+                            <i class="fas fa-filter text-xs"></i>Filtrla
+                        </button>
+                        <button onclick="clearResultsFilter()"
+                            class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-semibold rounded-lg transition">
+                            Tozala
+                        </button>
+                    </div>
+                </div>
+                <p id="resultsFilterLabel" class="text-xs text-slate-400 mt-2 hidden"></p>
+            </div>
+
+            <!-- Results table -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full">
+                        <thead>
+                            <tr class="border-b border-slate-100 bg-slate-50">
+                                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Fan</th>
+                                <th class="px-5 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide">Ball</th>
+                                <th class="px-5 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide">Natija</th>
+                                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide hidden lg:table-cell">Sana</th>
+                                <th class="px-5 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">Amallar</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultsTableBody" class="divide-y divide-slate-100">
+                            <tr><td colspan="5" class="px-5 py-8 text-center text-slate-400 text-sm">Yuklanmoqda...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── Reports Section ────────────────────────── -->
+        <section id="section-reports" class="hidden">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+                <h3 class="font-bold text-slate-800 mb-4">Test hisobotlari</h3>
+                <div id="reportsList">
+                    <div class="text-center py-10 text-slate-500">
+                        <i class="fas fa-chart-bar text-3xl text-slate-300 mb-3"></i>
+                        <p class="text-sm">Foydalanuvchilar bo'limidan tarix ikonkasini bosing.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        </div><!-- /p-6 -->
+    </main>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!--  MODALS                                               -->
+<!-- ══════════════════════════════════════════════════════ -->
+
+<!-- Profile / Password Modal -->
+<div id="profileModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+            <h3 class="font-semibold text-slate-800 flex items-center gap-2">
+                <i class="fas fa-key text-blue-600"></i> Parolni o'zgartirish
+            </h3>
+            <button onclick="closeProfileModal()" class="text-slate-400 hover:text-slate-600 transition">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form id="profileForm" onsubmit="submitProfileForm(event)" class="px-6 py-5 space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Joriy parol</label>
+                <div class="relative">
+                    <input type="password" id="currentPassword" required autocomplete="current-password"
+                        placeholder="Hozirgi parolingiz"
+                        class="w-full border border-slate-200 rounded-xl px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button type="button" onclick="togglePwd('currentPassword')"
+                        class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                        <i class="fas fa-eye text-xs"></i>
+                    </button>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Yangi parol</label>
+                <div class="relative">
+                    <input type="password" id="newPassword" required autocomplete="new-password"
+                        placeholder="Kamida 6 ta belgi"
+                        class="w-full border border-slate-200 rounded-xl px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button type="button" onclick="togglePwd('newPassword')"
+                        class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                        <i class="fas fa-eye text-xs"></i>
+                    </button>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Yangi parolni tasdiqlang</label>
+                <div class="relative">
+                    <input type="password" id="confirmPassword" required autocomplete="new-password"
+                        placeholder="Yangi parolni qayta kiriting"
+                        class="w-full border border-slate-200 rounded-xl px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button type="button" onclick="togglePwd('confirmPassword')"
+                        class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                        <i class="fas fa-eye text-xs"></i>
+                    </button>
+                </div>
+            </div>
+            <p id="profileFormError" class="hidden text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2"></p>
+            <div class="flex gap-3 pt-1">
+                <button type="button" onclick="closeProfileModal()"
+                    class="flex-1 px-4 py-2.5 text-sm border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition">
+                    Bekor qilish
+                </button>
+                <button type="submit" id="profileSubmitBtn"
+                    class="flex-1 px-4 py-2.5 text-sm bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition font-medium">
+                    Saqlash
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Subject Modal -->
+<div id="subjectModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+            <h2 id="subjectModalTitle" class="text-lg font-bold text-slate-800">Fan qo'shish</h2>
+            <button onclick="closeSubjectModal()" class="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-500">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="overflow-y-auto flex-1 p-6">
+            <form id="subjectForm" novalidate>
                 <input type="hidden" id="subjectId">
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-semibold mb-2">Subject Name *</label>
-                    <input type="text" id="subjectName" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div class="col-span-2">
+                        <label class="block text-sm font-semibold text-slate-700 mb-1.5">Fan nomi *</label>
+                        <input type="text" id="subjectName" required placeholder="Masalan: Matematika"
+                            class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-sm font-semibold text-slate-700 mb-1.5">Tavsif</label>
+                        <textarea id="subjectDescription" rows="2" placeholder="Ixtiyoriy..."
+                            class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1.5">Vaqt chegarasi (daqiqa) *</label>
+                        <input type="number" id="subjectTimeLimit" required min="1" placeholder="60"
+                            class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-sm font-semibold text-slate-700 mb-1.5">
+                            O'tish chegarasi *
+                            <span class="text-slate-400 font-normal text-xs ml-1">— imtihon qachon "o'tdi" hisoblanadi</span>
+                        </label>
+                        <div class="flex gap-2 items-center">
+                            <select id="subjectThresholdType" onchange="updateThresholdHint()"
+                                class="px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 flex-shrink-0">
+                                <option value="percent">Foiz (%)</option>
+                                <option value="count">Son (ta savol)</option>
+                            </select>
+                            <input type="number" id="subjectThresholdValue" min="1" placeholder="60"
+                                oninput="updateThresholdHint()"
+                                class="flex-1 px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <p id="thresholdHint" class="text-xs text-emerald-600 mt-1.5 font-medium min-h-[1rem]"></p>
+                    </div>
                 </div>
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-semibold mb-2">Description</label>
-                    <textarea id="subjectDescription" rows="3" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"></textarea>
+
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-3 border-t border-slate-100 pt-4">
+                    <h3 class="font-bold text-slate-800">Savollar</h3>
+                    <div class="flex gap-2">
+                        <!-- DOCX import -->
+                        <label class="cursor-pointer text-sm text-emerald-600 hover:text-emerald-700 font-semibold flex items-center gap-1 border border-emerald-200 hover:border-emerald-400 px-3 py-1.5 rounded-lg transition">
+                            <i class="fas fa-file-word text-xs"></i>DOCX import
+                            <input type="file" id="docxImportInput" accept=".docx" class="hidden" onchange="importFromDocx(this)">
+                        </label>
+                        <button type="button" onclick="addQuestionField()"
+                            class="text-sm text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1 border border-blue-200 hover:border-blue-400 px-3 py-1.5 rounded-lg transition">
+                            <i class="fas fa-plus text-xs"></i>Savol qo'shish
+                        </button>
+                    </div>
                 </div>
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-semibold mb-2">Total Time Limit (minutes) *</label>
-                    <input type="number" id="subjectTimeLimit" required min="1" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                <div id="docxProgress" class="hidden mb-2 text-xs text-slate-500 flex items-center gap-2">
+                    <div class="w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    <span>DOCX o'qilmoqda...</span>
                 </div>
-                
-                <h3 class="text-lg font-semibold mb-3">Questions</h3>
-                <div id="questionsContainer" class="space-y-4 mb-4"></div>
-                
-                <button type="button" onclick="addQuestionField()" class="text-blue-600 hover:text-blue-800 mb-4">
-                    <i class="fas fa-plus mr-2"></i>Add Question
-                </button>
-                
-                <div class="flex justify-end space-x-3">
-                    <button type="button" onclick="closeSubjectModal()" class="px-4 py-2 border rounded-lg hover:bg-gray-50">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Save Subject</button>
-                </div>
+                <div id="questionsContainer" class="space-y-3 mb-2"></div>
             </form>
         </div>
+        <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-3">
+            <button type="button" onclick="closeSubjectModal()"
+                class="px-4 py-2 text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg font-medium transition">Bekor</button>
+            <button type="button" onclick="document.getElementById('subjectForm').requestSubmit()"
+                class="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition">Saqlash</button>
+        </div>
     </div>
+</div>
 
-    <!-- User Modal -->
-    <div id="userModal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 id="userModalTitle" class="text-2xl font-bold mb-4">Add Student</h2>
-            <form id="userForm">
+<!-- User Modal -->
+<div id="userModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+            <h2 id="userModalTitle" class="text-lg font-bold text-slate-800">Talaba qo'shish</h2>
+            <button onclick="closeUserModal()" class="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-500">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="p-6">
+            <form id="userForm" novalidate>
                 <input type="hidden" id="userId">
+
+                <!-- Login -->
+                <div class="mb-3">
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Login *</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="userUsername" required placeholder="nis@12345678"
+                            class="flex-1 px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono">
+                        <button type="button" onclick="autoGenLogin()"
+                            title="Avtomatik yaratish"
+                            class="px-3 py-2 text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg font-semibold transition whitespace-nowrap">
+                            <i class="fas fa-wand-magic-sparkles mr-1"></i>Auto
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Password -->
                 <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-semibold mb-2">First Name *</label>
-                    <input type="text" id="userFirstName" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Parol</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="userPassword" placeholder="Bo'sh qoldirilsa avtomatik"
+                            class="flex-1 px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono">
+                        <button type="button" onclick="autoGenPassword()"
+                            title="Avtomatik yaratish"
+                            class="px-3 py-2 text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg font-semibold transition whitespace-nowrap">
+                            <i class="fas fa-wand-magic-sparkles mr-1"></i>Auto
+                        </button>
+                    </div>
+                    <p id="generatedPasswordHint" class="text-xs text-emerald-600 mt-1 hidden font-mono"></p>
                 </div>
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-semibold mb-2">Last Name *</label>
-                    <input type="text" id="userLastName" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+
+                <!-- Subjects multi-select -->
+                <div class="mb-1">
+                    <label class="block text-sm font-semibold text-slate-700 mb-1.5">Fanlar</label>
+                    <div id="subjectsCheckboxList"
+                        class="border border-slate-300 rounded-lg max-h-44 overflow-y-auto divide-y divide-slate-100 bg-white">
+                        <div class="px-3 py-3 text-sm text-slate-400">Yuklanmoqda...</div>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-1">Talaba bir nechta fandan imtihon topshirishi mumkin</p>
                 </div>
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-semibold mb-2">Class *</label>
-                    <input type="text" id="userClass" placeholder="e.g., 9A" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-semibold mb-2">Subject *</label>
-                    <input type="text" id="userSubject" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-semibold mb-2">Username *</label>
-                    <input type="text" id="userUsername" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-semibold mb-2">Password</label>
-                    <input type="text" id="userPassword" placeholder="Leave empty to auto-generate" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div class="flex justify-end space-x-3">
-                    <button type="button" onclick="closeUserModal()" class="px-4 py-2 border rounded-lg hover:bg-gray-50">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Save User</button>
-                </div>
+
+                <p id="userFormError" class="text-red-500 text-xs mt-2 hidden"></p>
             </form>
         </div>
-    </div>
-
-    <!-- Report Modal -->
-    <div id="reportModal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-lg p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-            <h2 class="text-2xl font-bold mb-4">Test Report</h2>
-            <div id="reportContent"></div>
-            <div class="flex justify-end mt-4">
-                <button onclick="closeReportModal()" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">Close</button>
-            </div>
+        <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-3">
+            <button type="button" onclick="closeUserModal()"
+                class="px-4 py-2 text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg font-medium transition">Bekor</button>
+            <button type="button" onclick="document.getElementById('userForm').requestSubmit()"
+                id="userSaveBtn"
+                class="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition">Saqlash</button>
         </div>
     </div>
+</div>
 
-    <script src="app.js"></script>
+<!-- Report Modal -->
+<div id="reportModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+            <h2 class="text-lg font-bold text-slate-800">Test hisoboti</h2>
+            <button onclick="closeReportModal()" class="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-500">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div id="reportContent" class="overflow-y-auto flex-1 p-6"></div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="app.js"></script>
 </body>
 </html>

@@ -10,14 +10,10 @@ router.get('/', authenticateStudent, subjectFetchLimiter, async (req, res) => {
   try {
     const user = req.user;
     
-    // Find subjects that match the user's subjectName or all active subjects
-    const subjects = await Subject.find({ 
+    const subjects = await Subject.find({
       isActive: true,
-      $or: [
-        { name: user.subjectName },
-        { name: new RegExp(user.subjectName, 'i') }
-      ]
-    }).select('name description totalTimeLimit isActive');
+      name: { $in: user.subjects || [] }
+    });
 
     // Check which subjects the user has already completed
     const completedSessions = await TestSession.find({
@@ -38,6 +34,8 @@ router.get('/', authenticateStudent, subjectFetchLimiter, async (req, res) => {
         name: subject.name,
         description: subject.description,
         totalTimeLimit: subject.totalTimeLimit,
+        passingThreshold: subject.passingThreshold || { thresholdType: 'percent', thresholdValue: 60 },
+        questionCount: subject.questions ? subject.questions.length : 0,
         isCompleted: completedSubjectIds.includes(subjectId),
         completedData: completedSubjectsMap[subjectId] || null
       };
@@ -64,7 +62,7 @@ router.get('/admin', authenticateAdmin, async (req, res) => {
 // Create a new subject (admin only)
 router.post('/', authenticateAdmin, async (req, res) => {
   try {
-    const { name, description, totalTimeLimit, questions } = req.body;
+    const { name, description, totalTimeLimit, passingThreshold, questions } = req.body;
 
     if (!name || !totalTimeLimit) {
       return res.status(400).json({ error: 'Name and totalTimeLimit are required' });
@@ -83,6 +81,10 @@ router.post('/', authenticateAdmin, async (req, res) => {
       name,
       description: description || '',
       totalTimeLimit,
+      passingThreshold: {
+        thresholdType:  passingThreshold?.thresholdType  || 'percent',
+        thresholdValue: passingThreshold?.thresholdValue != null ? passingThreshold.thresholdValue : 60
+      },
       questions: questions || []
     });
 
@@ -101,7 +103,7 @@ router.post('/', authenticateAdmin, async (req, res) => {
 router.put('/:id', authenticateAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description, totalTimeLimit, questions, isActive } = req.body;
+    const { name, description, totalTimeLimit, passingThreshold, questions, isActive } = req.body;
 
     const subject = await Subject.findById(id);
     if (!subject) {
@@ -111,6 +113,7 @@ router.put('/:id', authenticateAdmin, async (req, res) => {
     if (name) subject.name = name;
     if (description !== undefined) subject.description = description;
     if (totalTimeLimit) subject.totalTimeLimit = totalTimeLimit;
+    if (passingThreshold) subject.passingThreshold = passingThreshold;
     if (questions) subject.questions = questions;
     if (isActive !== undefined) subject.isActive = isActive;
 

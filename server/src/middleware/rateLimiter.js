@@ -55,6 +55,16 @@ const adminRateLimiter = rateLimit({
   keyGenerator: (req) => req.userId || req.ip,
 });
 
+// Login brute-force himoyasi — IP bo'yicha 10 urinish / 15 daqiqa
+const loginRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 daqiqa
+  max: 10,
+  message: { error: 'Juda ko\'p login urinish. 15 daqiqadan so\'ng qayta urinib ko\'ring.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true, // Muvaffaqiyatli loginlarni hisoblamaymiz
+});
+
 // General API rate limiter
 const apiRateLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
@@ -68,5 +78,6 @@ module.exports = {
   studentRateLimiter,
   subjectFetchLimiter,
   adminRateLimiter,
+  loginRateLimiter,
   apiRateLimiter
 };

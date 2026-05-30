@@ -66,6 +66,9 @@ router.get('/questions', authenticateStudent, async (req, res) => {
       });
     }
 
+    // Reset key press count so this test starts fresh
+    await User.findByIdAndUpdate(req.userId, { keyPressCount: 0 });
+
     // Create a new test session in DB
     const testSession = new TestSession({
       userId: req.userId,
@@ -105,6 +108,7 @@ router.get('/questions', authenticateStudent, async (req, res) => {
       subjectId: subject._id,
       subjectName: subject.name,
       totalTimeLimit: subject.totalTimeLimit, // in minutes
+      passingThreshold: subject.passingThreshold || { thresholdType: 'percent', thresholdValue: 60 },
       questions: sessionData.questions,
       startTime: sessionData.startTime
     });
@@ -144,9 +148,29 @@ router.post('/submit', authenticateStudent, async (req, res) => {
     }
 
     const result = await submitTest(userId, 'manual', answers);
-    
-    // Remove from active sessions
     activeSessions.delete(userId);
+
+    // Adminga real-vaqtda xabar
+    const wsServer = req.app.locals.wsServer;
+    if (wsServer) {
+      const u = req.user;
+      wsServer.broadcastAdmins({
+        type: 'test_completed',
+        student: {
+          id: u._id,
+          username: u.username,
+          firstName: u.firstName,
+          lastName: u.lastName,
+          className: u.className
+        },
+        score:          result.score,
+        correctAnswers: result.correctAnswers,
+        wrongAnswers:   result.wrongAnswers,
+        totalQuestions: result.totalQuestions,
+        passed:         result.passed,
+        completedAt:    new Date().toISOString()
+      });
+    }
 
     res.json(result);
   } catch (error) {
@@ -211,6 +235,12 @@ async function submitTest(userId, reason, answers = []) {
 
   const score = Math.round((correctAnswers / subject.questions.length) * 100);
 
+  // Compute passed using subject's threshold (default 60%)
+  const thr = subject.passingThreshold;
+  const passed = thr?.thresholdType === 'count'
+    ? correctAnswers >= (thr?.thresholdValue ?? 60)
+    : score        >= (thr?.thresholdValue ?? 60);
+
   // Update test session in DB
   const testSession = await TestSession.findOne({
     userId,
@@ -235,6 +265,8 @@ async function submitTest(userId, reason, answers = []) {
   return {
     message: reason === 'timeout' ? 'Test submitted due to timeout' : 'Test submitted successfully',
     score,
+    passed,
+    passingThreshold: subject.passingThreshold || { thresholdType: 'percent', thresholdValue: 60 },
     totalQuestions: subject.questions.length,
     correctAnswers,
     wrongAnswers,
@@ -298,7 +330,14 @@ router.post('/report-interruption', authenticateStudent, async (req, res) => {
     const { reason, description } = req.body;
 
     const session = activeSessions.get(userId.toString());
-    
+
+    // Faqat aktiv sessiyasi bo'lgan foydalanuvchini bloklash mumkin
+    // (aktivsiz holda bu endpointni chaqirish mantiqiy xato / suiste'mol)
+    const dbSession = await TestSession.findOne({ userId, status: 'active' });
+    if (!session && !dbSession) {
+      return res.status(400).json({ error: 'No active test session to interrupt' });
+    }
+
     if (session) {
       // Clear timeout
       if (session.timeoutHandle) {
@@ -335,9 +374,9 @@ router.post('/report-interruption', authenticateStudent, async (req, res) => {
   }
 });
 
-// Export active sessions map for WebSocket server
-module.exports.activeSessions = activeSessions;
-module.exports.submitTest = submitTest;
-module.exports.handleTestTimeout = handleTestTimeout;
+// Attach helpers to router so WebSocketServer can destructure them
+router.activeSessions      = activeSessions;
+router.submitTest          = submitTest;
+router.handleTestTimeout   = handleTestTimeout;
 
 module.exports = router;
