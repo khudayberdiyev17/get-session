@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src http://localhost:* ws://localhost:*;">
+  <title>Imtihon Tizimi</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     Fon dekoratsiyalari
+═══════════════════════════════════════════════════════════════════════ -->
+<div class="bg-layer" aria-hidden="true">
+  <div class="bg-glow glow-1"></div>
+  <div class="bg-glow glow-2"></div>
+  <div class="bg-glow glow-3"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     Toast xabarnomalar
+═══════════════════════════════════════════════════════════════════════ -->
+<div id="toast-wrap" aria-live="polite"></div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     EKRAN: Login
+═══════════════════════════════════════════════════════════════════════ -->
+<section class="screen active" id="screen-login">
+  <div class="center-wrap">
+
+    <div class="brand">
+      <div class="brand-icon">📚</div>
+      <h1 class="brand-title">Imtihon Tizimi</h1>
+      <p class="brand-sub">Bilimingizni sinab ko'ring</p>
+    </div>
+
+    <div class="card auth-card">
+      <h2 class="card-heading">Tizimga kirish</h2>
+
+      <div class="field">
+        <label class="field-label" for="inp-username">Login</label>
+        <div class="input-wrap">
+          <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+          </svg>
+          <input id="inp-username" class="input" type="text"
+                 placeholder="nis@XXXXXXXX" autocomplete="off" spellcheck="false">
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="inp-password">Parol</label>
+        <div class="input-wrap">
+          <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          <input id="inp-password" class="input" type="password" placeholder="••••••••">
+        </div>
+      </div>
+
+      <p class="error-msg hidden" id="login-err"></p>
+
+      <button class="btn btn-primary btn-full" id="btn-login">
+        <span class="btn-text">Kirish</span>
+        <span class="btn-icon">→</span>
+        <span class="btn-loader hidden"></span>
+      </button>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     EKRAN: Profil
+═══════════════════════════════════════════════════════════════════════ -->
+<section class="screen" id="screen-profile">
+  <div class="center-wrap">
+
+    <div class="brand">
+      <div class="brand-icon">✏️</div>
+      <h1 class="brand-title">Shaxsiy ma'lumotlar</h1>
+      <p class="brand-sub">Iltimos, ma'lumotlaringizni to'ldiring</p>
+    </div>
+
+    <div class="card auth-card">
+      <h2 class="card-heading">Ma'lumotlarni kiriting</h2>
+      <p class="card-sub" id="profile-username-display"></p>
+
+      <div class="field">
+        <label class="field-label" for="inp-firstname">Ism</label>
+        <div class="input-wrap">
+          <input id="inp-firstname" class="input" type="text" placeholder="Masalan: Jasur" autocomplete="off">
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="inp-lastname">Familiya</label>
+        <div class="input-wrap">
+          <input id="inp-lastname" class="input" type="text" placeholder="Masalan: Karimov" autocomplete="off">
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="inp-class">Sinf / Guruh</label>
+        <div class="input-wrap">
+          <input id="inp-class" class="input" type="text" placeholder="Masalan: 11-A" autocomplete="off">
+        </div>
+      </div>
+
+      <p class="error-msg hidden" id="profile-err"></p>
+
+      <button class="btn btn-primary btn-full" id="btn-profile-save">
+        <span class="btn-text">Davom etish</span>
+        <span class="btn-icon">→</span>
+        <span class="btn-loader hidden"></span>
+      </button>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     EKRAN: Fan tanlash
+═══════════════════════════════════════════════════════════════════════ -->
+<section class="screen" id="screen-subjects">
+  <div class="subjects-layout">
+
+    <!-- Header -->
+    <header class="subjects-header">
+      <div class="subjects-header-left">
+        <span class="badge-pill">IMTIHON TIZIMI</span>
+        <h1 class="page-title">Fanlar</h1>
+        <p class="page-sub" id="subjects-subtitle">Imtihon topshirish uchun fanni tanlang</p>
+      </div>
+      <div class="subjects-header-right">
+        <button class="btn-finish-exam hidden" id="btn-finish-exam">
+          <span>🏁</span> Imtihonni yakunlash
+        </button>
+        <div class="user-chip" id="user-chip">
+          <span class="user-chip-dot"></span>
+          <span id="user-chip-name">-</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Divider -->
+    <div class="divider"></div>
+
+    <!-- Grid -->
+    <div class="subjects-scroll">
+      <div class="subjects-grid" id="subjects-grid">
+        <!-- Karta elementlari JS orqali qo'shiladi -->
+        <div class="subjects-loading" id="subjects-loading">
+          <div class="spinner"></div>
+          <p>Fanlar yuklanmoqda...</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     EKRAN: Test
+═══════════════════════════════════════════════════════════════════════ -->
+<section class="screen" id="screen-test">
+
+  <!-- Top bar -->
+  <div class="test-topbar">
+    <div class="test-subject" id="test-subject-name">—</div>
+    <div class="test-center">
+      <span class="test-q-label" id="test-q-label">Savol 1 / 1</span>
+      <div class="test-progress-bar">
+        <div class="test-progress-fill" id="test-progress-fill" style="width:0%"></div>
+      </div>
+    </div>
+    <div class="test-timer" id="test-timer">
+      <span class="timer-icon">⏱</span>
+      <span class="timer-value" id="timer-value">00:00</span>
+    </div>
+  </div>
+
+  <!-- Question body -->
+  <div class="test-body">
+    <div class="question-wrap">
+      <p class="question-num" id="question-num">1-savol</p>
+      <p class="question-text" id="question-text"></p>
+      <div id="question-img-wrap" class="question-img-wrap hidden">
+        <img id="question-img" src="" alt="Savol rasmi">
+      </div>
+    </div>
+
+    <div class="options-list" id="options-list">
+      <!-- To'rtta variant JS orqali qo'shiladi -->
+    </div>
+  </div>
+
+  <!-- Bottom nav -->
+  <div class="test-bottombar">
+    <button class="btn btn-ghost" id="btn-prev">
+      <span>←</span> Oldingi
+    </button>
+
+    <div class="q-dots" id="q-dots">
+      <!-- Navigatsiya nuqtalari -->
+    </div>
+
+    <div class="test-right-nav">
+      <button class="btn btn-ghost" id="btn-next">
+        Keyingi <span>→</span>
+      </button>
+      <button class="btn btn-danger" id="btn-submit-test">
+        Topshirish
+      </button>
+    </div>
+  </div>
+
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     EKRAN: Natijalar
+═══════════════════════════════════════════════════════════════════════ -->
+<section class="screen" id="screen-results">
+  <div class="center-wrap">
+    <div class="card results-card">
+
+      <!-- Score doirasi -->
+      <div class="score-ring-wrap">
+        <svg class="score-ring" viewBox="0 0 120 120">
+          <circle class="ring-track" cx="60" cy="60" r="52"/>
+          <circle class="ring-fill" id="ring-fill"
+                  cx="60" cy="60" r="52"
+                  stroke-dasharray="326.73"
+                  stroke-dashoffset="326.73"/>
+        </svg>
+        <div class="score-center">
+          <span class="score-pct" id="score-pct">0%</span>
+          <span class="score-label-sm">ball</span>
+        </div>
+      </div>
+
+      <h2 class="results-title" id="results-title">—</h2>
+      <p class="results-sub"   id="results-sub"></p>
+
+      <!-- Statistika qatori -->
+      <div class="results-stats">
+        <div class="stat">
+          <span class="stat-ico stat-correct">✓</span>
+          <strong id="stat-correct">0</strong>
+          <span>to'g'ri</span>
+        </div>
+        <div class="stat-sep"></div>
+        <div class="stat">
+          <span class="stat-ico stat-wrong">✗</span>
+          <strong id="stat-wrong">0</strong>
+          <span>xato</span>
+        </div>
+        <div class="stat-sep"></div>
+        <div class="stat">
+          <span class="stat-ico stat-time">⏱</span>
+          <strong id="stat-time">0</strong>
+          <span>daqiqa</span>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-full" id="btn-next-subject">
+        Keyingi fan →
+      </button>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     MODAL: Topshirishni tasdiqlash
+═══════════════════════════════════════════════════════════════════════ -->
+<div class="modal-overlay hidden" id="confirm-modal">
+  <div class="modal-box">
+    <h3 class="modal-title">Imtihonni topshirish</h3>
+    <p class="modal-body" id="confirm-modal-body">
+      Hali javob berilmagan savollar bor. Shunday bo'lsa ham topshirmoqchimisiz?
+    </p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="btn-confirm-cancel">Bekor</button>
+      <button class="btn btn-danger" id="btn-confirm-ok">Ha, topshirish</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     OVERLAY: Bloklangan (cheating / admin block)
+═══════════════════════════════════════════════════════════════════════ -->
+<div class="blocked-overlay hidden" id="blocked-overlay">
+  <div class="blocked-box">
+    <div class="blocked-icon" id="blocked-icon">🚫</div>
+    <h2 class="blocked-title" id="blocked-title">Bloklangiz</h2>
+    <p class="blocked-msg" id="blocked-msg">Adminga murojaat qiling.</p>
+    <div class="blocked-countdown">
+      <span id="blocked-countdown">5</span> soniyada login sahifasiga o'tiladi...
+    </div>
+  </div>
+</div>
+
+<!-- Theme toggle (top-right, hidden on login/profile) -->
+<button class="theme-toggle hidden" id="theme-toggle" title="Kun / Tun rejimi">
+  <span class="theme-icon-sun">☀</span>
+  <span class="theme-icon-moon">☾</span>
+</button>
+
+<script src="js/app.js"></script>
+</body>
+</html>

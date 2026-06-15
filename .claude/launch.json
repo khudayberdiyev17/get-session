@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "admin-panel",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "-s", "admin-panel", "-l", "5500"],
+      "port": 5500
+    }
+  ]
+}

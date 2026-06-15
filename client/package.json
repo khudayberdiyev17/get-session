@@ -1,0 +1,54 @@
+{
+  "name": "exam-client",
+  "version": "1.0.0",
+  "description": "Imtihon tizimi — talabalar uchun klient dastur",
+  "author": "Exam System",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win --x64",
+    "build:dir": "electron-builder --win --x64 --dir"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "^28.3.3",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "uz.exam.client",
+    "productName": "Imtihon Tizimi",
+    "copyright": "© 2025 Exam System",
+    "asar": true,
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "requestedExecutionLevel": "requireAdministrator"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Imtihon Tizimi",
+      "installerLanguages": ["ru"],
+      "language": "1049",
+      "deleteAppDataOnUninstall": true
+    },
+    "extraResources": [
+      {
+        "from": "config.json",
+        "to": "config.json"
+      }
+    ],
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**/*",
+      "!node_modules/.cache",
+      "!**/*.map"
+    ],
+    "directories": {
+      "output": "dist"
+    }
+  }
+}

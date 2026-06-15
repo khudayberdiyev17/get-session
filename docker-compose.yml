@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:6
+    container_name: exam-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+      MONGO_INITDB_DATABASE: exam-system
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - exam-network
+    ports:
+      - "27017:27017"
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: exam-server
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - MONGODB_URI=mongodb://admin:admin123@mongodb:27017/exam-system?authSource=admin
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+    depends_on:
+      - mongodb
+    networks:
+      - exam-network
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+
+  admin-panel:
+    image: nginx:alpine
+    container_name: exam-admin-panel
+    restart: unless-stopped
+    volumes:
+      - ./admin-panel:/usr/share/nginx/html
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - server
+    networks:
+      - exam-network
+    ports:
+      - "80:80"
+
+networks:
+  exam-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
